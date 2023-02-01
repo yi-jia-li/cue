@@ -1,6 +1,6 @@
 ### temperal line prediction function
 import numpy as np
-import glob
+#import glob
 import tensorflow as tf
 import tqdm
 import dill as pickle
@@ -8,8 +8,8 @@ from . import cont_pca
 from .cont_pca import SpectrumPCA
 from .nn import Speculator
 from .utils import cont_lam
-import __main__
-__main__.SpectrumPCA = SpectrumPCA
+#import __main__
+#__main__.SpectrumPCA = SpectrumPCA
 
 ### read the fit PCAs and NN
 try:
@@ -82,7 +82,10 @@ class predict():
         fit_spectra = list()
         if self.n_segments == 1:
             fit_spectra = self.pca_basis.PCA.inverse_transform(self.nn.log_spectrum_(self.theta)) * self.nn.log_spectrum_scale_ + self.nn.log_spectrum_shift_
-            fit_spectra = np.squeeze(fit_spectra)[wavind_sorted]
+            if self.n_sample == 1:
+                fit_spectra = np.squeeze(fit_spectra)[wavind_sorted]
+            else:
+                fit_spectra = np.squeeze(fit_spectra)[:,wavind_sorted]
             self.nn_spectra = fit_spectra
         else:
             this_spec = list()

@@ -1,0 +1,61 @@
+[project]
+name = "astro-cue"
+description = "Nebular Emission Modeling"
+authors = [
+    { name="Yijia Li", email="yijia.li@psu.edu" },
+]
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "MIT License" }
+classifiers = [
+    "Development Status :: 5 - Production",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Topic :: Scientific/Engineering :: Astronomy"
+]
+dynamic = ["version"]
+dependencies = ["numpy", "sklearn", "scipy", "tensorflow", "dill"] #"pickle"
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-xdist"]
+
+
+[tool.setuptools]
+#packages = ["src.cue",]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+namespaces = true
+where = ["src"]
+
+[tool.setuptools.package-data]
+"cue.data" = ["*.dat","*.pkl", "*.npy", "*.txt"]
+
+[tool.coverage.run]
+parallel = true
+branch = true
+source = ["cue"]
+#omit = [
+#    "emcee/interruptible_pool.py",
+#    "emcee/mpi_pool.py",
+#    "emcee/ptsampler.py",
+#    "docs/*",
+#    "tests/*",
+#    "*__init__*"
+#]
+
+[tool.coverage.paths]
+source = ["src"]
+
+#[project.urls]
+#"Source" = "https://github.com/yi-jia-li/cue"
+#"Bug Tracker" = "https://github.com/yi-jia-li/cue/issues"
+
+[build-system]
+requires = ["setuptools>=40.6.0", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+#[tool.setuptools_scm]
+#write_to = "src/cue/_version.py"
