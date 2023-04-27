@@ -3,7 +3,7 @@ Nebular emission modeling
 
 ##Install
 git clone https://github.com/yi-jia-li/cue.git
-cd cue
+cd cue/cue
 pip install .
 
 ##Uninstall
