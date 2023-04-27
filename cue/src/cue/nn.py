@@ -1,10 +1,10 @@
 ### Speculator Neural Net
 import numpy as np
-import glob
+#import glob
 import tensorflow as tf
 import tqdm
 
-import pickle
+import dill as pickle
 dtype = tf.float32
 
 class Speculator(tf.keras.Model):
