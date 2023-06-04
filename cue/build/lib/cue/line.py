@@ -152,13 +152,13 @@ class predict():
     """
     Nebular Line Emission Prediction
     :param theta: nebular parameters of n samples, (n, 12) matrix 
-    :param gammas, log_L_ratios, logQH, n_H, log_OH_ratio, log_NO_ratio, log_CO_ratio: 12 input parameters, vectors
+    :param gammas, log_L_ratios, log_QH, n_H, log_OH_ratio, log_NO_ratio, log_CO_ratio: 12 input parameters, vectors
     :param wavelength: wavelengths corresponding to the neural net output luminosities, not required
     :param line_ind: index of the lines in the sorted wavelength array, the default return only the lines in cloudyfsps
     :output sorted wavelength, and L_nu in erg/Hz sorted by wavelength
     """
     
-    def __init__(self, pca_basis=line_PCABasis, nn=line_speculator, theta=None, gammas=None, log_L_ratios=None, logQH=None, 
+    def __init__(self, pca_basis=line_PCABasis, nn=line_speculator, theta=None, gammas=None, log_L_ratios=None, log_QH=None, 
                  n_H=None, log_OH_ratio=None, log_NO_ratio=None, log_CO_ratio=None, 
                  wavelength=nn_wavelength, line_ind=line_old,  #line_lam[wav_selection]
                  #wav_selection = None,
@@ -174,20 +174,20 @@ class predict():
         self.wavelength = np.array(wavelength)
         self.line_ind = line_ind
         if theta is None:
-            if (np.size(logQH)==1):
+            if (np.size(log_QH)==1):
                 self.n_sample = 1
-                self.theta = np.hstack([gammas, log_L_ratios, logQH, n_H, 
+                self.theta = np.hstack([gammas, log_L_ratios, log_QH, n_H, 
                                         log_OH_ratio, log_NO_ratio, log_CO_ratio]).reshape((1, 12)) #10**log_NO_ratio, 10**log_CO_ratio
             else:
-                self.n_sample = len(logQH)
+                self.n_sample = len(log_QH)
                 self.gammas = np.array(gammas)
                 self.log_L_ratios = np.array(log_L_ratios)
-                self.log_QH = np.reshape(logQH, (len(logQH), 1))
+                self.log_QH = np.reshape(log_QH, (len(log_QH), 1))
                 self.n_H = np.reshape(n_H, (len(n_H), 1))
                 self.log_OH_ratio = np.reshape(log_OH_ratio, (len(log_OH_ratio), 1))
                 self.log_NO_ratio = np.reshape(log_NO_ratio, (len(log_NO_ratio), 1))
                 self.log_CO_ratio = np.reshape(log_CO_ratio, (len(log_CO_ratio), 1))
-                self.theta = np.hstack([self.gammas, self.log_L_ratios, self.logQH, self.n_H, 
+                self.theta = np.hstack([self.gammas, self.log_L_ratios, self.log_QH, self.n_H, 
                                         self.log_OH_ratio, self.log_NO_ratio, self.log_CO_ratio]) #10**self.log_NO_ratio, 10**self.log_CO_ratio
         else:
             self.theta = np.array(theta)

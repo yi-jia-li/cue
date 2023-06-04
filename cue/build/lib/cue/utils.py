@@ -39,7 +39,7 @@ nn_ion = np.array([['H  1'], ['He 1'], ['He 2'], ['C  1'], ['C  2', 'C  3'], ['C
                                ['N  1', 'N  2', 'N  3'], ['O  1'], ['O  2'], ['O  3'],
                                ['Mg 2', 'Fe 2', 'Si 2', 'Al 2', 'P  2', 'S  2', 'Cl 2', 'Ar 2'],
                                ['Al 3', 'Si 3', 'S  3', 'Cl 3', 'Ar 3', 'Ne 2'],
-                               ['S  4'], ['Ar 4'], ['Ne 3'], ['Ne 4']])
+                               ['S  4'], ['Ar 4'], ['Ne 3'], ['Ne 4']], dtype=object)
 nn_wav_selection = list()
 for this_line_ion in nn_ion:
     if np.size(this_line_ion) == 1:
@@ -51,7 +51,7 @@ for this_line_ion in nn_ion:
             wav_selection.append(np.where(new_ele_arr == i)[0])
         wav_selection = np.sort(np.concatenate(wav_selection))
     nn_wav_selection.append(wav_selection)
-nn_wav_selection = np.array(nn_wav_selection)
+nn_wav_selection = np.array(nn_wav_selection, dtype=object)
 nn_wavelength = new_sorted_line_lam[np.concatenate(nn_wav_selection)]
 
 line_name = new_sorted_line_name[line_old]
