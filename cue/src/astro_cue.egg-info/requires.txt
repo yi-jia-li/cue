@@ -1,0 +1,10 @@
+numpy
+sklearn
+scipy
+tensorflow
+dill
+tqdm
+
+[test]
+pytest
+pytest-xdist
