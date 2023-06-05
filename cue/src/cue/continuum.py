@@ -7,7 +7,7 @@ import dill as pickle
 from . import cont_pca
 from .cont_pca import SpectrumPCA
 from .nn import Speculator
-from .utils import cont_lam
+from .utils import cont_lam, logQ
 #import __main__
 #__main__.SpectrumPCA = SpectrumPCA
 
@@ -95,6 +95,26 @@ class predict():
             self.nn_spectra = np.squeeze(np.array(fit_spectra))
         self.wavelength = self.wavelength[wavind_sorted]
         return self.wavelength, 10**self.nn_spectra
+
+
+def get_cont(par):
+    """
+    A wrapper of nebular continuum emulator for SED fitting.
+    """
+    neb_cont = cont_predict(gammas=[par['ionspec_index1'], par['ionspec_index2'], 
+                                    par['ionspec_index3'], par['ionspec_index4']],
+                            log_L_ratios=[par['ionspec_logLratio1'], par['ionspec_logLratio2'],
+                                          par['ionspec_logLratio3']],
+                            log_QH=logQ(par['gas_logu'], lognH=par['gas_logn']),
+                            n_H=10**par['gas_logn'],
+                            log_OH_ratio=par['gas_logz'],
+                            log_NO_ratio=par['gas_logno'],
+                            log_CO_ratio=par['gas_logco'],
+                           ).nn_predict()
+    cont_spec = neb_cont[1]/3.839E33/10**logQ(par['gas_logu'], lognH=par['gas_logn'])*10**par['log_qion'] # convert to the unit in FSPS
+    from scipy.interpolate import CubicSpline
+    neb_cont_cs = CubicSpline(neb_cont[0], cont_spec, extrapolate=True) # interpolate onto the fsps wavelengths
+    return {"normalized nebular continuum": cont_spec, "interpolator": neb_cont_cs}
     
     
 #testing_spectra, testing_pca, testing_spectra_in_pca_basis = PCABasis.validate_pca_basis(spectrum_filename = contfiles[i])

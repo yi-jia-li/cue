@@ -7,7 +7,7 @@ import tqdm
 import dill as pickle
 from .line_pca import SpectrumPCA
 from .nn import Speculator
-from .utils import (nn_wavelength, nn_name, line_old)
+from .utils import (nn_wavelength, nn_name, line_old, logQ)
 import __main__
 __main__.SpectrumPCA = SpectrumPCA
 
@@ -215,6 +215,23 @@ class predict():
             self.nn_spectra = np.squeeze(np.array(fit_spectra))
         self.wavelength = self.wavelength[wavind_sorted]
         return self.wavelength, 10**self.nn_spectra 
+
+def get_line(par):
+    """
+    A wrapper of nebular line emulator for SED fitting.
+    """
+    neb_line = line_predict(gammas=[par['ionspec_index1'], par['ionspec_index2'], 
+                                    par['ionspec_index3'], par['ionspec_index4']],
+                            log_L_ratios=[par['ionspec_logLratio1'], par['ionspec_logLratio2'],
+                                          par['ionspec_logLratio3']],
+                            log_QH=logQ(par['gas_logu'], lognH=par['gas_logn']),
+                            n_H=10**par['gas_logn'],
+                            log_OH_ratio=par['gas_logz'],
+                            log_NO_ratio=par['gas_logno'],
+                            log_CO_ratio=par['gas_logco'],
+                           ).nn_predict()
+    line_spec = neb_line[1]/3.839E33/10**logQ(par['gas_logu'], lognH=par['gas_logn'])*10**par['log_qion'] # convert to the unit in FSPS
+    return {"normalized nebular lineinuum": line_spec}
 
 
 ### Example

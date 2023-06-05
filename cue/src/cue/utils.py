@@ -80,7 +80,7 @@ def L2norm(index, logL, wav=None):
                 log_norm[one_ind,i] = logL[one_ind,i]-np.log10(c*Lsun)-np.log10(np.abs(np.log10(wav[ind_bin[i+1]-1])-np.log10(wav[ind_bin[i]])))
     return log_norm
 
-def Ltotal(param=np.zeros((4,2)), wav=None, spec=None):
+def Ltotal(param=np.zeros((1,4,2)), wav=None, spec=None):
     """wav in Angstrom; spec in Lnu"""
     if np.any(wav == None):
         edges = np.array([1, HeII_edge, OII_edge, HeI_edge, 912])
@@ -96,6 +96,37 @@ def Ltotal(param=np.zeros((4,2)), wav=None, spec=None):
             log_Ltotal[:,i] = param[:,i,1]+np.log10(c*Lsun)+\
             np.log10(np.abs((wav[ind_bin[i+1]-1]**(param[:,i,0]-1)-wav[ind_bin[i]]**(param[:,i,0]-1))/(param[:,i,0]-1)))
     return log_Ltotal
+
+def calcQ(lamin0, specin0, mstar=1.0, helium=False, f_nu=True):
+    '''
+    Claculate the number of lyman ionizing photons for given spectrum
+    Input spectrum must be in ergs/s/A!!
+    Q = int(Lnu/hnu dnu, nu_0, inf)
+    '''
+    from scipy.integrate import simps
+    lamin = np.asarray(lamin0)
+    specin = np.asarray(specin0)
+    c = 2.9979e18 #ang/s
+    h = 6.626e-27 #erg/s
+    if helium:
+        lam_0 = 304.0
+    else:
+        lam_0 = 911.6
+    if f_nu:
+        nu_0 = c/lam_0
+        inds, = np.where(c/lamin >= nu_0)
+        hlam, hflu = c/lamin[inds], specin[inds]
+        nu = hlam[::-1]
+        f_nu = hflu[::-1]
+        integrand = f_nu/(h*nu)
+        Q = simps(integrand, x=nu)
+    else:
+        inds, = np.nonzero(lamin <= lam_0)
+        lam = lamin[inds]
+        spec = specin[inds]
+        integrand = lam*spec/(h*c)
+        Q = simps(integrand, x=lam)*mstar
+    return Q
 
 def get_4loglinear_spectra(wav, param):
     """Return ionizing spectrum given the parameters of the log linear fits.
@@ -168,3 +199,34 @@ def fit_4loglinear(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 912]):
             coeff[i] = res.x #popt
             coeff[i,1] = coeff[i,1]-np.log10(norm)
     return coeff
+
+def fit_4loglinear_ionparam(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 912]):
+    """Fit 4 powerlaws to the given spectrum.
+    :param wav:
+        (N,) wavelengths, AA
+    :param spec:
+        (N,) fluxes, Lsun/Hz
+    :param λ_bin:
+        edges of the 4 powerlaws (default: ionization edges of HeII, OII, HeI, and HII), AA
+    :returns ionizing parameters
+    """
+    ind_bin = np.array([max(np.where(wav<=λ)[0]) for λ in λ_bin]) + 1 #np.array([np.argmin(np.abs(wav-λ)) for λ in λ_bin])+1
+    ind_bin = np.insert(ind_bin, 0, 0)
+    coeff = np.zeros((len(ind_bin)-1, 2))
+    for i in range(len(ind_bin)-1):
+#        if np.min(spec[ind_bin[i]:ind_bin[i+1]])>0:
+        pos_ind, = np.where((np.squeeze(spec)[ind_bin[i]:ind_bin[i+1]])>0)
+        if np.size(pos_ind)==0:
+            coeff[i] = [0, -np.inf]
+        else:
+            norm = 1e-18/np.median(spec[ind_bin[-1]]) ### normalize the input spec, so that the minimize function can find the right solution from the given initial parameters
+            res = minimize(objective_func_loglinear, [10, -30], 
+                           args=(wav[ind_bin[i]:ind_bin[i+1]], 
+                                 np.clip(np.squeeze(spec*norm), 1e-70, np.inf)[ind_bin[i]:ind_bin[i+1]])
+                          )
+            coeff[i] = res.x #popt
+            coeff[i,1] = coeff[i,1]-np.log10(norm)
+    logLratios = np.diff(np.squeeze(Ltotal(param=coeff.reshape(1,4,2))))
+    logQ = np.log10(calcQ(wav, spec*3.839E33))
+    return {'powerlaw_params': coeff, 'ionspec_index1': coeff[0,0], 'ionspec_index2': coeff[1,0], 'ionspec_index3': coeff[2,0], 'ionspec_index4': coeff[3,0], 
+            'ionspec_logLratio1': logLratios[0], 'ionspec_logLratio2': logLratios[1], 'ionspec_logLratio3': logLratios[2], "logQ": logQ}
