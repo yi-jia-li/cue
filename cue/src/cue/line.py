@@ -1,4 +1,4 @@
-### temperal line prediction function
+## temperal line prediction function
 import numpy as np
 #import glob
 import tensorflow as tf
@@ -8,8 +8,8 @@ import dill as pickle
 from .line_pca import SpectrumPCA
 from .nn import Speculator
 from .utils import (nn_wavelength, nn_name, line_old, logQ)
-import __main__
-__main__.SpectrumPCA = SpectrumPCA
+#import __main__
+#__main__.SpectrumPCA = SpectrumPCA
 
     
 ### read the fit PCAs and NN
@@ -245,3 +245,4 @@ def get_line(par):
 #theta = np.loadtxt(parfiles[test_ind])[:,parameter_index]
 #fit_spectra = PCABasis_H.PCA.inverse_transform(speculator_H.log_spectrum_(theta)) * \
 #speculator_H.log_spectrum_scale_ +\ speculator_H.log_spectrum_shift_
+

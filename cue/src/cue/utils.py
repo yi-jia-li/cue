@@ -18,7 +18,7 @@ def get_linewavelength(lines):
     return wavelength*factor
 #unsorted_line_name = np.genfromtxt(resource_filename("cue", "data/lineList128lines.dat"), delimiter='\n', dtype="S20")
 #unsorted_line_name = np.array([i.decode() for i in unsorted_line_name])
-#unsorted_line_lam = get_linewavelength(unsorted_line_name) 
+#unsorted_line_lam = get_linewavelength(unsorted_line_name)
 #line_name = unsorted_line_name[np.argsort(unsorted_line_lam)]
 #line_lam = np.sort(unsorted_line_lam)
 
@@ -30,12 +30,12 @@ new_ele_arr = np.array([i[:4].rstrip() for i in new_sorted_line_name])
 line_new_added = np.where((new_sorted_line_lam == 4685.68) | (new_sorted_line_lam == 1550.77) |
                           (new_sorted_line_lam == 1548.19) | (new_sorted_line_lam == 1750.00) |
                           (new_sorted_line_lam == 2424.28) | (new_sorted_line_lam == 1882.71) |
-                          (new_sorted_line_lam == 1892.03) | (new_sorted_line_lam == 1406.02) | 
+                          (new_sorted_line_lam == 1892.03) | (new_sorted_line_lam == 1406.02) |
                           (new_sorted_line_lam == 4711.26) | (new_sorted_line_lam == 4740.12))[0]
 line_old = np.arange(138)[~np.isin(np.arange(138), line_new_added)]
-nn_name = np.array(['H1', 'He1', 'He2', 'C1', 'C2C3', 'C4', 'N', 'O1', 'O2', 'O3', 
+nn_name = np.array(['H1', 'He1', 'He2', 'C1', 'C2C3', 'C4', 'N', 'O1', 'O2', 'O3',
                     'ionE_1', 'ionE_2', 'S4', 'Ar4', 'Ne3', 'Ne4'])
-nn_ion = np.array([['H  1'], ['He 1'], ['He 2'], ['C  1'], ['C  2', 'C  3'], ['C  4'], 
+nn_ion = np.array([['H  1'], ['He 1'], ['He 2'], ['C  1'], ['C  2', 'C  3'], ['C  4'],
                                ['N  1', 'N  2', 'N  3'], ['O  1'], ['O  2'], ['O  3'],
                                ['Mg 2', 'Fe 2', 'Si 2', 'Al 2', 'P  2', 'S  2', 'Cl 2', 'Ar 2'],
                                ['Al 3', 'Si 3', 'S  3', 'Cl 3', 'Ar 3', 'Ne 2'],
@@ -43,7 +43,7 @@ nn_ion = np.array([['H  1'], ['He 1'], ['He 2'], ['C  1'], ['C  2', 'C  3'], ['C
 nn_wav_selection = list()
 for this_line_ion in nn_ion:
     if np.size(this_line_ion) == 1:
-        #wav_ind = np.array(new_ele_arr == this_line_ion) 
+        #wav_ind = np.array(new_ele_arr == this_line_ion)
         wav_selection, = np.where(new_ele_arr == this_line_ion)
     else:
         wav_selection = list()
@@ -143,6 +143,10 @@ def logQ(logU, R=1e19, lognH=2):
     c = 2.9979e10 #cm/s
     return logU + np.log10(4*np.pi) + 2*np.log10(R) + lognH + np.log10(c)
 
+def logU(logQ, R=1e19, lognH=2):
+    c = 2.9979e10 #cm/s
+    return logQ - np.log10(4*np.pi) - 2*np.log10(R) - lognH - np.log10(c)
+
 def spec_normalized(wav, spec):
     """wav in Angstrom; spec in Lnu; return nuLnu
     """
@@ -153,7 +157,7 @@ def spec_normalized(wav, spec):
 
 ### fit functions
 def customize_loss_funtion_loglinear(y_pred, y_true, λ=None, sample_weights=None):
-    """Loss function for fitting the powerlaws. 
+    """Loss function for fitting the powerlaws.
     loss = 0.5 \sum (y_pred-y_true)^2 + 0.5 N (\log10 Q_true - \log10 Q_pred)^2
     N is the number of data points, Q is the ionizing photon rates of this segment from integrating spectrum/hν
     """
@@ -192,8 +196,8 @@ def fit_4loglinear(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 912]):
             coeff[i] = [0, -np.inf]
         else:
             norm = 1e-18/np.median(spec[ind_bin[-1]]) ### normalize the input spec, so that the minimize function can find the right solution from the given initial parameters
-            res = minimize(objective_func_loglinear, [10, -30], 
-                           args=(wav[ind_bin[i]:ind_bin[i+1]], 
+            res = minimize(objective_func_loglinear, [10, -30],
+                           args=(wav[ind_bin[i]:ind_bin[i+1]],
                                  np.clip(np.squeeze(spec*norm), 1e-70, np.inf)[ind_bin[i]:ind_bin[i+1]])
                           )
             coeff[i] = res.x #popt
@@ -220,13 +224,14 @@ def fit_4loglinear_ionparam(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 91
             coeff[i] = [0, -np.inf]
         else:
             norm = 1e-18/np.median(spec[ind_bin[-1]]) ### normalize the input spec, so that the minimize function can find the right solution from the given initial parameters
-            res = minimize(objective_func_loglinear, [10, -30], 
-                           args=(wav[ind_bin[i]:ind_bin[i+1]], 
+            res = minimize(objective_func_loglinear, [10, -30],
+                           args=(wav[ind_bin[i]:ind_bin[i+1]],
                                  np.clip(np.squeeze(spec*norm), 1e-70, np.inf)[ind_bin[i]:ind_bin[i+1]])
                           )
             coeff[i] = res.x #popt
             coeff[i,1] = coeff[i,1]-np.log10(norm)
     logLratios = np.diff(np.squeeze(Ltotal(param=coeff.reshape(1,4,2))))
     logQ = np.log10(calcQ(wav, spec*3.839E33))
-    return {'powerlaw_params': coeff, 'ionspec_index1': coeff[0,0], 'ionspec_index2': coeff[1,0], 'ionspec_index3': coeff[2,0], 'ionspec_index4': coeff[3,0], 
-            'ionspec_logLratio1': logLratios[0], 'ionspec_logLratio2': logLratios[1], 'ionspec_logLratio3': logLratios[2], "logQ": logQ}
+    return {'ionspec_index1': coeff[0,0], 'ionspec_index2': coeff[1,0], 'ionspec_index3': coeff[2,0], 'ionspec_index4': coeff[3,0],
+            'ionspec_logLratio1': logLratios[0], 'ionspec_logLratio2': logLratios[1], 'ionspec_logLratio3': logLratios[2], "log_qion": logQ} #'powerlaw_params': coeff,
+
