@@ -1,7 +1,0 @@
-numpy
-sklearn
-scipy
-
-[test]
-pytest
-pytest-xdist

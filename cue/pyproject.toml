@@ -38,9 +38,6 @@ parallel = true
 branch = true
 source = ["cue"]
 #omit = [
-#    "emcee/interruptible_pool.py",
-#    "emcee/mpi_pool.py",
-#    "emcee/ptsampler.py",
 #    "docs/*",
 #    "tests/*",
 #    "*__init__*"
