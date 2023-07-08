@@ -171,9 +171,28 @@ def customize_loss_funtion_loglinear(y_pred, y_true, λ=None, sample_weights=Non
     return 0.5 * np.sum((y_true - y_pred)**2) + \
            0.5 * ((np.log10(Q_true) - np.log10(Q_pred))**2) * len(λ)
 
+def customize_loss_funtion_loglinear_analytical(params, y_pred, y_true, λ=None, sample_weights=None):
+    """Loss function for fitting the powerlaws.
+    loss = 0.5 \sum (y_pred-y_true)^2 + 0.5 N (\log10 Q_true - \log10 Q_pred)^2
+    N is the number of data points, Q is the ionizing photon rates of this segment from integrating spectrum/hν
+    """
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+    assert len(λ) == len(y_true)
+    Q_true = np.abs(np.trapz(10**y_true*λ/(h*c), x=c/λ))
+    Q_pred = 10**params[1] / h * np.abs((λ[-1]**(params[0])
+                                                       -λ[0]**(params[0]))/(params[0]))
+    #np.abs(np.trapz(10**y_pred*λ/(h*c), x=c/λ))
+    #y_pred = linear(np.log10(λ), *params)
+    return 0.5 * np.sum((y_true - y_pred)**2) + \
+           0.5 * ((np.log10(Q_true) - np.log10(Q_pred))**2) * len(λ)
+
 from scipy.optimize import minimize
 def objective_func_loglinear(params, X, Y):
     return customize_loss_funtion_loglinear(linear(np.log10(X), *params), np.log10(Y), X)
+
+def objective_func_loglinear_analytical(params, X, Y):
+    return customize_loss_funtion_loglinear_analytical(params, linear(np.log10(X), *params), np.log10(Y), X)
 
 def fit_4loglinear(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 912]):
     """Fit 4 powerlaws to the given spectrum.
@@ -189,16 +208,16 @@ def fit_4loglinear(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 912]):
     ind_bin = np.array([max(np.where(wav<=λ)[0]) for λ in λ_bin]) + 1 #np.array([np.argmin(np.abs(wav-λ)) for λ in λ_bin])+1
     ind_bin = np.insert(ind_bin, 0, 0)
     coeff = np.zeros((len(ind_bin)-1, 2))
+    norm = 1e-18/np.median(spec[ind_bin[-1]]) ### normalize the input spec, so that the minimize function can find the right solution from the given initial parameters
     for i in range(len(ind_bin)-1):
 #        if np.min(spec[ind_bin[i]:ind_bin[i+1]])>0:
         pos_ind, = np.where((np.squeeze(spec)[ind_bin[i]:ind_bin[i+1]])>0)
         if np.size(pos_ind)==0:
             coeff[i] = [0, -np.inf]
         else:
-            norm = 1e-18/np.median(spec[ind_bin[-1]]) ### normalize the input spec, so that the minimize function can find the right solution from the given initial parameters
             res = minimize(objective_func_loglinear, [10, -30],
                            args=(wav[ind_bin[i]:ind_bin[i+1]],
-                                 np.clip(np.squeeze(spec*norm), 1e-70, np.inf)[ind_bin[i]:ind_bin[i+1]])
+                                 np.clip(np.squeeze(spec*norm), 1e-70*norm, np.inf)[ind_bin[i]:ind_bin[i+1]])
                           )
             coeff[i] = res.x #popt
             coeff[i,1] = coeff[i,1]-np.log10(norm)
@@ -217,21 +236,29 @@ def fit_4loglinear_ionparam(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 91
     ind_bin = np.array([max(np.where(wav<=λ)[0]) for λ in λ_bin]) + 1 #np.array([np.argmin(np.abs(wav-λ)) for λ in λ_bin])+1
     ind_bin = np.insert(ind_bin, 0, 0)
     coeff = np.zeros((len(ind_bin)-1, 2))
+    norm = 1e-18/np.median(spec[ind_bin[-1]]) ### normalize the input spec, so that the minimize function can find the right solution from the given initial parameters
     for i in range(len(ind_bin)-1):
 #        if np.min(spec[ind_bin[i]:ind_bin[i+1]])>0:
         pos_ind, = np.where((np.squeeze(spec)[ind_bin[i]:ind_bin[i+1]])>0)
         if np.size(pos_ind)==0:
             coeff[i] = [0, -np.inf]
         else:
-            norm = 1e-18/np.median(spec[ind_bin[-1]]) ### normalize the input spec, so that the minimize function can find the right solution from the given initial parameters
-            res = minimize(objective_func_loglinear, [10, -30],
-                           args=(wav[ind_bin[i]:ind_bin[i+1]],
-                                 np.clip(np.squeeze(spec*norm), 1e-70, np.inf)[ind_bin[i]:ind_bin[i+1]])
+            this_x = wav[ind_bin[i]:ind_bin[i+1]]
+            this_spec = np.clip(np.squeeze(spec*norm), 1e-70*norm, np.inf)[ind_bin[i]:ind_bin[i+1]]
+            init_slope = (np.log10(this_spec[-1]) - np.log10(this_spec[0])) / \
+                         (np.log10(this_x[-1]) - np.log10(this_x[0]))
+            init_norm = np.log10(this_spec[-1]) - init_slope * np.log10(this_x[-1])
+            res = minimize(objective_func_loglinear_analytical, [init_slope, init_norm],
+                           args=(this_x, this_spec),
+                           bounds=[(-30,60), (-120, 100)],
+                           method= "SLSQP", #"BFGS", #"L-BFGS-B",
                           )
-            coeff[i] = res.x #popt
+            coeff[i] = res.x
             coeff[i,1] = coeff[i,1]-np.log10(norm)
+ 
     logLratios = np.diff(np.squeeze(Ltotal(param=coeff.reshape(1,4,2))))
     logQ = np.log10(calcQ(wav, spec*3.839E33))
     return {'ionspec_index1': coeff[0,0], 'ionspec_index2': coeff[1,0], 'ionspec_index3': coeff[2,0], 'ionspec_index4': coeff[3,0],
-            'ionspec_logLratio1': logLratios[0], 'ionspec_logLratio2': logLratios[1], 'ionspec_logLratio3': logLratios[2], "log_qion": logQ} #'powerlaw_params': coeff,
+            'ionspec_logLratio1': logLratios[0], 'ionspec_logLratio2': logLratios[1], 'ionspec_logLratio3': logLratios[2],
+            "log_qion": logQ, 'powerlaw_params': coeff}
 
