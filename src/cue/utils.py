@@ -156,7 +156,7 @@ def spec_normalized(wav, spec):
 
 
 ### fit functions
-def customize_loss_funtion_loglinear(y_pred, y_true, λ=None, sample_weights=None):
+def customize_loss_funtion_loglinear_analytical(params, y_pred, y_true, log_Q_true, λ=None, sample_weights=None):
     """Loss function for fitting the powerlaws.
     loss = 0.5 \sum (y_pred-y_true)^2 + 0.5 N (\log10 Q_true - \log10 Q_pred)^2
     N is the number of data points, Q is the ionizing photon rates of this segment from integrating spectrum/hν
@@ -164,35 +164,20 @@ def customize_loss_funtion_loglinear(y_pred, y_true, λ=None, sample_weights=Non
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
     assert len(λ) == len(y_true)
-    #Q_true = cloudyfsps.generalTools.calcQ(λ, 10**y_true, f_nu=True) #*c.L_sun.cgs.value
-    #Q_pred = cloudyfsps.generalTools.calcQ(λ, 10**y_pred, f_nu=True) #*c.L_sun.cgs.value
-    Q_true = np.abs(np.trapz(10**y_true*λ/(h*c), x=c/λ))
-    Q_pred = np.abs(np.trapz(10**y_pred*λ/(h*c), x=c/λ))
-    return 0.5 * np.sum((y_true - y_pred)**2) + \
-           0.5 * ((np.log10(Q_true) - np.log10(Q_pred))**2) * len(λ)
-
-def customize_loss_funtion_loglinear_analytical(params, y_pred, y_true, λ=None, sample_weights=None):
-    """Loss function for fitting the powerlaws.
-    loss = 0.5 \sum (y_pred-y_true)^2 + 0.5 N (\log10 Q_true - \log10 Q_pred)^2
-    N is the number of data points, Q is the ionizing photon rates of this segment from integrating spectrum/hν
-    """
-    y_true = np.array(y_true)
-    y_pred = np.array(y_pred)
-    assert len(λ) == len(y_true)
-    Q_true = np.abs(np.trapz(10**y_true*λ/(h*c), x=c/λ))
-    Q_pred = 10**params[1] / h * np.abs((λ[-1]**(params[0])
-                                                       -λ[0]**(params[0]))/(params[0]))
+    log_Q_pred = params[1] - np.log10(h) + np.log10(np.abs((λ[-1]**(params[0])
+                                                       -λ[0]**(params[0]))/(params[0])))
     #np.abs(np.trapz(10**y_pred*λ/(h*c), x=c/λ))
     #y_pred = linear(np.log10(λ), *params)
     return 0.5 * np.sum((y_true - y_pred)**2) + \
-           0.5 * ((np.log10(Q_true) - np.log10(Q_pred))**2) * len(λ)
+           0.5 * ((log_Q_true - log_Q_pred)**2) * len(λ)
 
 from scipy.optimize import minimize
 def objective_func_loglinear(params, X, Y):
     return customize_loss_funtion_loglinear(linear(np.log10(X), *params), np.log10(Y), X)
 
-def objective_func_loglinear_analytical(params, X, Y):
-    return customize_loss_funtion_loglinear_analytical(params, linear(np.log10(X), *params), np.log10(Y), X)
+def objective_func_loglinear_analytical(params, X, logY, logQ):
+    return customize_loss_funtion_loglinear_analytical(params, linear(np.log10(X), *params), logY, 
+                                                       logQ, X)
 
 def fit_4loglinear(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 912]):
     """Fit 4 powerlaws to the given spectrum.
@@ -248,9 +233,10 @@ def fit_4loglinear_ionparam(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 91
             init_slope = (np.log10(this_spec[-1]) - np.log10(this_spec[0])) / \
                          (np.log10(this_x[-1]) - np.log10(this_x[0]))
             init_norm = np.log10(this_spec[-1]) - init_slope * np.log10(this_x[-1])
+            Q_true = np.abs(np.trapz(this_spec*this_x/(h*c), x=c/this_x))
             res = minimize(objective_func_loglinear_analytical, [init_slope, init_norm],
-                           args=(this_x, this_spec),
-                           bounds=[(-30,60), (-120, 100)],
+                           args=(this_x, np.log10(this_spec), np.log10(Q_true)),
+                           bounds=[(-40,100), (-200, 100)],
                            method= "SLSQP", #"BFGS", #"L-BFGS-B",
                           )
             coeff[i] = res.x
@@ -258,7 +244,6 @@ def fit_4loglinear_ionparam(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 91
  
     logLratios = np.diff(np.squeeze(Ltotal(param=coeff.reshape(1,4,2))))
     logQ = np.log10(calcQ(wav, spec*3.839E33))
-    return {'ionspec_index1': coeff[0,0], 'ionspec_index2': coeff[1,0], 'ionspec_index3': coeff[2,0], 'ionspec_index4': coeff[3,0],
-            'ionspec_logLratio1': logLratios[0], 'ionspec_logLratio2': logLratios[1], 'ionspec_logLratio3': logLratios[2],
+    return {'ionspec_index1': np.clip(coeff[0,0], 1, 42), 'ionspec_index2': np.clip(coeff[1,0], -0.3, 30), 'ionspec_index3': np.clip(coeff[2,0], -1, 14), 'ionspec_index4': np.clip(coeff[3,0], -1.7, 8),
+            'ionspec_logLratio1': np.clip(logLratios[0], -1, 10.1), 'ionspec_logLratio2': np.clip(logLratios[1], -0.5, 1.9), 'ionspec_logLratio3': np.clip(logLratios[2], -0.4, 2.2),
             "log_qion": logQ, 'powerlaw_params': coeff}
-

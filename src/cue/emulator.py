@@ -37,7 +37,7 @@ class Emulator():
         ionizing parameters, follow the range
         ionspec_index1: [1, 42], ionspec_index2: [-0.3, 30],
         ionspec_index3: [-1, 14], ionspec_index4: [-1.7, 8],
-        logLratio1: [-1., 10.1], logLratio2: [-0.5, 1.9], logLratio3: [-0.4, 2.2]
+        ionspec_logLratio1: [-1., 10.1], ionspec_logLratio2: [-0.5, 1.9], ionspec_logLratio3: [-0.4, 2.2]
     :param gas_logu, gas_logn, gas_logz, gas_logno, gas_logco:
         nebular parameters, follow the range
         gas_logu: [-4, -1], gas_logn: [1, 4], gas_logz: [-2.2, 0.5],
