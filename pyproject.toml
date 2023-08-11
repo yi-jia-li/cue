@@ -16,7 +16,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Astronomy"
 ]
 dynamic = ["version"]
-dependencies = ["numpy", "sklearn", "scipy", "tensorflow", "dill", "tqdm"] #"pickle"
+dependencies = ["numpy", "scikit-learn", "scipy", "tensorflow", "dill", "tqdm"] #"pickle"
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-xdist"]
