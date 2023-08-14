@@ -97,6 +97,15 @@ def Ltotal(param=np.zeros((1,4,2)), wav=None, spec=None):
             np.log10(np.abs((wav[ind_bin[i+1]-1]**(param[:,i,0]-1)-wav[ind_bin[i]]**(param[:,i,0]-1))/(param[:,i,0]-1)))
     return log_Ltotal
 
+def Qtotal(param=np.zeros((4,2))):
+    """wav in Angstrom; spec in Lnu"""
+    edges = np.array([1, HeII_edge, OII_edge, HeI_edge, 912])
+    log_Qtotal = np.zeros(len(edges)-1)
+    for i in range(len(edges)-1):
+        log_Qtotal[i] = param[i,1] + np.log10(Lsun) - np.log10(h) + np.log10(np.abs(edges[i+1]**param[i,0]
+                                                                   -edges[i]**param[i,0]/param[i,0]))
+    return log_Qtotal
+
 def calcQ(lamin0, specin0, mstar=1.0, helium=False, f_nu=True):
     '''
     Claculate the number of lyman ionizing photons for given spectrum
@@ -208,6 +217,19 @@ def fit_4loglinear(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 912]):
             coeff[i,1] = coeff[i,1]-np.log10(norm)
     return coeff
 
+def gradient_func_loglinear_analytical(params, X, logY, logQ):
+    logh = np.log10(h)
+    logX = np.log10(X)
+    power_xmin = X[0]**params[0]
+    power_xmax = X[-1]**params[0]
+    term_Q = ( params[1] + np.log10( (power_xmax - power_xmin)/params[0] ) - logQ - logh)
+    grad_slope = np.sum( (params[1] + params[0] * logX - logY) * logX ) + \
+    len(X) / np.log(10) * term_Q *\
+    ( (power_xmax * np.log(X[-1]) - power_xmin * np.log(X[0])) / (power_xmax - power_xmin) - 1./params[0] )
+    grad_norm = np.sum( (params[1] + params[0]*logX - logY) ) + \
+    len(X) * term_Q
+    return grad_slope, grad_norm
+
 def fit_4loglinear_ionparam(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 912]):
     """Fit 4 powerlaws to the given spectrum.
     :param wav:
@@ -235,15 +257,17 @@ def fit_4loglinear_ionparam(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 91
             init_norm = np.log10(this_spec[-1]) - init_slope * np.log10(this_x[-1])
             Q_true = np.abs(np.trapz(this_spec*this_x/(h*c), x=c/this_x))
             res = minimize(objective_func_loglinear_analytical, [init_slope, init_norm],
+                           jac=gradient_func_loglinear_analytical,
                            args=(this_x, np.log10(this_spec), np.log10(Q_true)),
                            bounds=[(-40,100), (-200, 100)],
                            method= "SLSQP", #"BFGS", #"L-BFGS-B",
                           )
             coeff[i] = res.x
             coeff[i,1] = coeff[i,1]-np.log10(norm)
- 
+
     logLratios = np.diff(np.squeeze(Ltotal(param=coeff.reshape(1,4,2))))
-    logQ = np.log10(calcQ(wav, spec*3.839E33))
+    # we want to normalize cue outputs with QH from the given spec later; for converting Ls to powerlaw parameters, we need to use total QH based on the 1-912A powerlaw fits
+    logQ = np.log10(calcQ(wav, spec*3.839E33)) #np.log10(np.sum(10**Qtotal(param=coeff)))
     return {'ionspec_index1': np.clip(coeff[0,0], 1, 42), 'ionspec_index2': np.clip(coeff[1,0], -0.3, 30), 'ionspec_index3': np.clip(coeff[2,0], -1, 14), 'ionspec_index4': np.clip(coeff[3,0], -1.7, 8),
             'ionspec_logLratio1': np.clip(logLratios[0], -1, 10.1), 'ionspec_logLratio2': np.clip(logLratios[1], -0.5, 1.9), 'ionspec_logLratio3': np.clip(logLratios[2], -0.4, 2.2),
             "log_qion": logQ, 'powerlaw_params': coeff}

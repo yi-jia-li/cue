@@ -27,12 +27,8 @@ class Emulator():
     """
     Nebular Continuum and Line Emission Prediction
     :param theta: nebular parameters of n samples, (n, 12) matrix
-    :param use_stellar_ionizing_spectrum:
+    :param use_stellar_ionizing:
         If true, fit the csp and to get the ionizing spectrum parameters, else read from the model
-    :param csp_wav:
-        CSP wavelengths, AA
-    :param csp_spec:
-        CSP fluxes, Lsun/Hz
     :param ionspec_index1, ionspec_index2, ionspec_index3, ionspec_index4, ionspec_logLratio1, ionspec_logLratio2, ionspec_logLratio3:
         ionizing parameters, follow the range
         ionspec_index1: [1, 42], ionspec_index2: [-0.3, 30],
@@ -42,7 +38,7 @@ class Emulator():
         nebular parameters, follow the range
         gas_logu: [-4, -1], gas_logn: [1, 4], gas_logz: [-2.2, 0.5],
         gas_logno: [-1, log10(5.4)], gas_logco: [-1, log10(5.4)]
-    :param log_qion: ionizing QH as the normalization factor of the emulator output
+    :param log_qion: ionizing QH as the normalization factor of the emulator output, sum of Qs from four power laws if use_stellar_ionizing==True,
     :param wave: wavelengths for the output nebular continuum, AA
     :output normalized nebular continuum in Lsun/Hz, and normalized line luminosities in Lsun
     """
