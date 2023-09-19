@@ -1,5 +1,6 @@
 ### functions for generating ionizing spectrum
 import numpy as np
+import dill as pickle
 from .constants import Lsun,c,h,HeI_edge,HeII_edge,OII_edge
 try:
     from pkg_resources import resource_filename, resource_listdir
@@ -10,12 +11,12 @@ except(ImportError):
 cont_lam = np.genfromtxt(resource_filename("cue", "data/FSPSlam.dat"))
 cont_nu = c/cont_lam
 
-def get_linewavelength(lines):
-    wavelength = np.array([i[5:12] for i in lines], dtype=float)
-    unit = np.array([i[12:] for i in lines], dtype=str)
-    factor = np.ones(np.shape(unit))
-    factor[unit=='m'] = 1e4
-    return wavelength*factor
+#def get_linewavelength(lines):
+#    wavelength = np.array([i[5:12] for i in lines], dtype=float)
+#    unit = np.array([i[12:] for i in lines], dtype=str)
+#    factor = np.ones(np.shape(unit))
+#    factor[unit=='m'] = 1e4
+#    return wavelength*factor
 #unsorted_line_name = np.genfromtxt(resource_filename("cue", "data/lineList128lines.dat"), delimiter='\n', dtype="S20")
 #unsorted_line_name = np.array([i.decode() for i in unsorted_line_name])
 #unsorted_line_lam = get_linewavelength(unsorted_line_name)
@@ -57,22 +58,25 @@ nn_wavelength = new_sorted_line_lam[np.concatenate(nn_wav_selection)]
 line_name = new_sorted_line_name[line_old]
 line_lam = new_sorted_line_lam[line_old]
 
+nn_stats = pickle.load(open(resource_filename("cue", "data/nn_stats_v0.pkl"), "rb"))
+sigma_line_for_fsps = 1./nn_stats['SN_quantile'][1][nn_stats['fsps_ind']][np.argsort(nn_stats['wav'][nn_stats['fsps_ind']])]
+
+### power law functions
 def linear(logλ, α, logA):
     return logA + α*logλ
 
-def L2norm(index, logL, wav=None):
+def L2norm(index, logL, edges=[HeII_edge, OII_edge, HeI_edge, 912], wav=None):
+    log_norm = np.zeros_like(index)
     if np.any(wav == None):
-        edges = np.array([1, HeII_edge, OII_edge, HeI_edge, 912])
-        log_norm = np.zeros(np.shape(index))
+        edges = np.hstack([1, edges])
         for i in range(len(edges)-1):
             log_norm[:,i] = logL[:,i]-np.log10(c*Lsun)-np.log10(np.abs((edges[i+1]**(index[:,i]-1)-edges[i]**(index[:,i]-1))/(index[:,i]-1)))
             if np.any(index[:,i] == 1):
                 one_ind = np.where(index[:,i] == 1)[0]
                 log_norm[one_ind,i] = logL[one_ind,i]-np.log10(c*Lsun)-np.log10(np.abs(np.log10(edges[i+1])-np.log10(edges[i])))
     else:
-        ind_bin = np.array([max(np.where(wav<=λ)[0]) for λ in [HeII_edge, OII_edge, HeI_edge, 912]])+1 #np.array([np.argmin(np.abs(ssp_wavelength-λ)) for λ in λ_bin])+1
+        ind_bin = np.array([max(np.where(wav<=λ)[0]) for λ in edges])+1 #np.array([np.argmin(np.abs(ssp_wavelength-λ)) for λ in λ_bin])+1
         ind_bin = np.insert(ind_bin, 0, 0)
-        log_norm = np.zeros(np.shape(index))
         for i in range(len(ind_bin)-1):
             log_norm[:,i] = logL[:,i]-np.log10(c*Lsun)-np.log10(np.abs((wav[ind_bin[i+1]-1]**(index[:,i]-1)-wav[ind_bin[i]]**(index[:,i]-1))/(index[:,i]-1)))
             if np.any(index[:,i] == 1):
@@ -80,26 +84,25 @@ def L2norm(index, logL, wav=None):
                 log_norm[one_ind,i] = logL[one_ind,i]-np.log10(c*Lsun)-np.log10(np.abs(np.log10(wav[ind_bin[i+1]-1])-np.log10(wav[ind_bin[i]])))
     return log_norm
 
-def Ltotal(param=np.zeros((1,4,2)), wav=None, spec=None):
+def Ltotal(param=np.zeros((1,4,2)), wav=None, spec=None, edges=[HeII_edge, OII_edge, HeI_edge, 912]):
     """wav in Angstrom; spec in Lnu"""
+    log_Ltotal = np.zeros((len(param), len(edges)))
     if np.any(wav == None):
-        edges = np.array([1, HeII_edge, OII_edge, HeI_edge, 912])
-        log_Ltotal = np.zeros((len(param), 4))
+        edges = np.hstack([1, edges])
         for i in range(len(edges)-1):
             log_Ltotal[:,i] = param[:,i,1]+ np.log10(c*Lsun) + np.log10(np.abs((edges[i+1]**(param[:,i,0]-1)
                                                                             -edges[i]**(param[:,i,0]-1))/(param[:,i,0]-1)))
     else:
         ind_bin = np.array([max(np.where(wav<=λ)[0]) for λ in [HeII_edge, OII_edge, HeI_edge, 912]])+1 #np.array([np.argmin(np.abs(ssp_wavelength-λ)) for λ in λ_bin])+1
         ind_bin = np.insert(ind_bin, 0, 0)
-        log_Ltotal = np.zeros((len(param), 4))
         for i in range(len(ind_bin)-1):
             log_Ltotal[:,i] = param[:,i,1]+np.log10(c*Lsun)+\
             np.log10(np.abs((wav[ind_bin[i+1]-1]**(param[:,i,0]-1)-wav[ind_bin[i]]**(param[:,i,0]-1))/(param[:,i,0]-1)))
     return log_Ltotal
 
-def Qtotal(param=np.zeros((4,2))):
+def Qtotal(param=np.zeros((4,2)), edges=[HeII_edge, OII_edge, HeI_edge, 912]):
     """wav in Angstrom; spec in Lnu"""
-    edges = np.array([1, HeII_edge, OII_edge, HeI_edge, 912])
+    edges = nnp.hstack([1, edges])
     log_Qtotal = np.zeros(len(edges)-1)
     for i in range(len(edges)-1):
         log_Qtotal[i] = param[i,1] + np.log10(Lsun) - np.log10(h) + np.log10(np.abs(edges[i+1]**param[i,0]
@@ -137,12 +140,13 @@ def calcQ(lamin0, specin0, mstar=1.0, helium=False, f_nu=True):
         Q = simps(integrand, x=lam)*mstar
     return Q
 
-def get_4loglinear_spectra(wav, param):
+def get_loglinear_spectra(wav, param, ion_edges=[HeII_edge, OII_edge, HeI_edge]):
     """Return ionizing spectrum given the parameters of the log linear fits.
     """
-    ind_bin = np.array([max(np.where(wav<=λ)[0]) for λ in [HeII_edge, OII_edge, HeI_edge, np.max(wav)]]) + 1 #np.array([np.argmin(np.abs(ssp_wav-λ)) for λ in λ_bin])+1
+    edges = np.hstack([ion_edges, np.max(wav)])
+    ind_bin = np.array([max(np.where(wav<=λ)[0]) for λ in edges]) + 1 #np.array([np.argmin(np.abs(ssp_wav-λ)) for λ in λ_bin])+1
     ind_bin = np.insert(ind_bin, 0, 0)
-    spec = np.zeros(np.shape(wav))
+    spec = np.zeros_like(wav)
     for i in range(len(ind_bin)-1):
         spec[ind_bin[i]:ind_bin[i+1]] = 10**linear(np.log10(wav[ind_bin[i]:ind_bin[i+1]]),
                                                    param[i,0], param[i,1])
@@ -160,9 +164,12 @@ def spec_normalized(wav, spec):
     """wav in Angstrom; spec in Lnu; return nuLnu
     """
     wav_ind, = np.where(wav<912)
-    norm = np.abs(np.trapz(spec[wav_ind]*Lsun, x=c/wav[wav_ind])) #np.abs(np.trapz(spec[:,wav_ind]*Lsun, x=c/wav[wav_ind], axis=1))#*wav/c
-    return spec*Lsun*c/wav/norm #spec*Lsun*c/wav/norm.reshape((len(spec),1))
-
+    if np.array(spec).ndim==1:
+        norm = np.abs(np.trapz(spec[wav_ind]*Lsun, x=c/wav[wav_ind])) 
+        return spec*Lsun*c/wav/norm 
+    elif np.array(spec).ndim==2:
+        norm = np.abs(np.trapz(spec[:,wav_ind]*Lsun, x=c/wav[wav_ind], axis=1))
+        return spec*Lsun*c/wav/norm.reshape((len(spec),1))
 
 ### fit functions
 logh = np.log10(h)
