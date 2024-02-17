@@ -70,7 +70,7 @@ def L2norm(index, logL, edges=[HeII_edge, OII_edge, HeI_edge, 911.6], wav=None):
     """
     Transform the log of the integrated fluxes of each segment into the log of the normalizations.
     log Α = log L - log (c*L_sun) - log ( (λ_max^(α-1) - λ_min^(α-1)) / (α-1) )
-    :par index: 
+    :par index:
         (N, M) power law indexes, each spectrum is consist of M power laws
     :par logL:
         (N, M) log of the integrated flux in M bins
@@ -100,9 +100,9 @@ def ionparam2norm(ionparam):
     """
     Transform the 7 cue ionizing spectrum parameters into the power law parameters.
     log Α = log L - log (c*L_sun) - log ( (λ_max^(α+1) - λ_min^(α-1)) / (α-1) )
-    :par ionparam: 
+    :par ionparam:
         (7,) power law parameters, 4 power law indexes and 3 flux ratios of the two nearby segments
-    :returns {(4,2), (4,2)} of the power law parameters and fluxes of each bin. Note that the spectrum is assumed to start at 1 Angstrom. 
+    :returns {(4,2), (4,2)} of the power law parameters and fluxes of each bin. Note that the spectrum is assumed to start at 1 Angstrom.
      The scale of the returned normalizations and integrated fluxes is arbitrary.
     """
     edges = [1, HeII_edge, OII_edge, HeI_edge, 911.6]
@@ -144,17 +144,16 @@ def Ltotal(param=np.zeros((1,4,2)), wav=None, spec=None, edges=[HeII_edge, OII_e
             np.log10(np.abs((wav[ind_bin[i+1]-1]**(param[:,i,0]-1)-wav[ind_bin[i]]**(param[:,i,0]-1))/(param[:,i,0]-1)))
     return log_Ltotal
 
-def Qtotal(param, edges=[HeII_edge, OII_edge, HeI_edge, 911.6]):
+def Qtotal(param, edges=[1, HeII_edge, OII_edge, HeI_edge, 911.6]):
     """
     Calculate logQ at each bin given the power law parameters.
     log Q = log A + log L_sun - log h + log ( (λ_max^α - λ_min^α) / α )
     :par param:
         (M, 2) power law parameters, param[:,0] are the indexes α, param[:,1] are the log normalizations log A
     :par edges:
-        (M,) ionization edges of the power laws, i.e., upper limit of each bin, default [HeII_edge, OII_edge, HeI_edge, 911.6]
+        (M+1,) edges of the power law segments, i.e., lower and upper limit of each bin, default [HeII_edge, OII_edge, HeI_edge, 911.6]
     :returns log of the integrating Q in each bin (M,), the unit is arbitrary unless the power laws are in Fnu/Lsun. Note that the spectrum is assumed to start at 1 Angstrom.
     """
-    edges = np.hstack([1, edges])
     log_Qtotal = np.zeros(len(edges)-1)
     for i in range(len(edges)-1):
         log_Qtotal[i] = param[i,1] + np.log10(Lsun) - np.log10(h) + np.log10((edges[i+1]**param[i,0]
@@ -192,11 +191,12 @@ def calcQ(lamin0, specin0, mstar=1.0, helium=False, f_nu=True):
 
 def calcQs(lamin0, specin0, edges=[1, HeII_edge, OII_edge, HeI_edge, 911.6]):
     """
-    Calculate the number of ionizing photons for the given spectrum at different segments. 
+    Calculate the number of ionizing photons for the given spectrum at different segments.
     The default edge of each bin is [1, HeII_edge, OII_edge, HeI_edge, 911.6].
     Input spectrum must be in ergs/s/Hz!!
     Q = int(Lnu/hnu dnu, nu_min, nu_max)
     """
+    from scipy.integrate import simps
     lamin = np.asarray(lamin0)
     specin = np.asarray(specin0)
     c = 2.9979e18 #ang/s
@@ -217,7 +217,7 @@ def calcQs(lamin0, specin0, edges=[1, HeII_edge, OII_edge, HeI_edge, 911.6]):
 
 def get_loglinear_spectra(wav, param, ion_edges=[HeII_edge, OII_edge, HeI_edge]):
     """
-    Calculate ionizing spectrum given the wavelength and power law parameters. 
+    Calculate ionizing spectrum given the wavelength and power law parameters.
     The power laws are calculated at the segments [wav[0], ion_edges, wav[-1]].
     :par wav:
         (N,) wavelengths, AA
