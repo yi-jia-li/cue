@@ -23,4 +23,7 @@ lines = line_predict(theta=par).nn_predict()
 cont = cont_predict(theta=par).nn_predict()
 ```
 
+An example of fitting emission lines with cue in [demo/cue_demo.ipynb](https://github.com/yi-jia-li/cue/blob/main/demo/cue_demo.ipynb)
+
+
 A list of the emulated lines can be found in [data/lineList.dat](https://github.com/yi-jia-li/cue/blob/main/src/cue/data/lineList.dat)
