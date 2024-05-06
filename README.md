@@ -1,5 +1,5 @@
 # Cue
-Nebular emission modeling 
+Cue is a flexible tool for interpreting nebular emission across a wide range of ionizing conditions of galaxies. It is a neural net emulator based on the Cloudy photoionization code. Cue does not require a specific ionizing spectrum as a source, instead approximating the ionizing spectrum with a 4-part piece-wise power-law. Along with the flexible ionizing spectra, Cue allows freedom in [O/H], [N/O], [C/O], gas density, and total ionizing photon budget.
 
 ## Install
 git clone https://github.com/yi-jia-li/cue.git
