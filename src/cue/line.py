@@ -160,7 +160,7 @@ class predict():
     
     def __init__(self, pca_basis=line_PCABasis, nn=line_speculator, theta=None, gammas=None, log_L_ratios=None, log_QH=None, 
                  n_H=None, log_OH_ratio=None, log_NO_ratio=None, log_CO_ratio=None, 
-                 wavelength=nn_wavelength, line_ind=line_old,  #line_lam[wav_selection]
+                 wavelength=nn_wavelength, line_ind=np.arange(138)#line_old,  #line_lam[wav_selection]
                  #wav_selection = None,
                  #parameter_selection = None
                 ):
