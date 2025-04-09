@@ -69,9 +69,8 @@ class Emulator():
         self.line_ind = line_old
         self.log_qion = log_qion
         if theta is None:
-            self.use_theta_arr = False
-            if (np.size(ionspec_index1)==1):
-                self.n_sample = 1
+            self.n_sample = np.size(ionspec_index1)
+            if (self.n_sample==1):
                 self.ionspec_index1 = ionspec_index1
                 self.ionspec_index2 = ionspec_index2
                 self.ionspec_index3 = ionspec_index3
@@ -86,7 +85,6 @@ class Emulator():
                 self.gas_logno = gas_logno
                 self.gas_logco = gas_logco
             else:
-                self.n_sample = len(ionspec_index1)
                 self.ionspec_index1 = np.reshape(ionspec_index1, (len(ionspec_index1), 1))
                 self.ionspec_index2 = np.reshape(ionspec_index2, (len(ionspec_index2), 1))
                 self.ionspec_index3 = np.reshape(ionspec_index3, (len(ionspec_index3), 1))
@@ -108,21 +106,23 @@ class Emulator():
         #               'gas_logno': self.theta[:,10], 'gas_logco': self.theta[:,11],
         #               'log_qion': self.log_qion}
         else:
-            self.theta = np.array(theta)
-            self.use_theta_arr = True
-            self.n_sample = len(self.theta)
-            self.gas_logq = logQ(theta[:,-5:], lognH=theta[:,-4:])
+            self.cue_par = np.array(theta)
+            self.n_sample = len(self.cue_par)
+            self.gas_logq = logQ(self.cue_par[:,-5], lognH=self.cue_par[:,-4])
+            self.cue_par[:,-4] = 10**self.cue_par[:,-4]
+            self.cue_par[:,-5] = self.gas_logq
+            self.gas_logq = np.reshape(self.gas_logq, (len(self.cue_par), 1))
             #self.theta[:,-2:] = 10**self.theta[:,-2:]
         #raise ValueError('NEBULAR PARAMETER ERROR: input {0} parameters but required 12'.format(len(theta[0]))
 
-    def update(self, **kwargs):
+    def update(self, theta=None, **kwargs):
         for arg, value in kwargs.items():
             if arg in self.__dict__ and value is not None:
                 setattr(self, arg, value)
-        if not self.use_theta_arr:
+        if theta is None:
             if (np.size(self.ionspec_index1)==1):
                 self.gas_logq = logQ(self.gas_logu, lognH=self.gas_logn)
-                self.theta = np.hstack([self.ionspec_index1, self.ionspec_index2, self.ionspec_index3, self.ionspec_index4,
+                self.cue_par = np.hstack([self.ionspec_index1, self.ionspec_index2, self.ionspec_index3, self.ionspec_index4,
                                         self.ionspec_logLratio1, self.ionspec_logLratio2, self.ionspec_logLratio3,
                                         self.gas_logq, 10**self.gas_logn, self.gas_logz, self.gas_logno,
                                         self.gas_logco]).reshape((1, 12))
@@ -140,17 +140,23 @@ class Emulator():
                 self.gas_logz = np.reshape(self.gas_logz, (len(self.gas_logz), 1))
                 self.gas_logno = np.reshape(self.gas_logno, (len(self.gas_logno), 1))
                 self.gas_logco = np.reshape(self.gas_logco, (len(self.gas_logco), 1))
-                self.theta = np.hstack([self.ionspec_index1, self.ionspec_index2, self.ionspec_index3, self.ionspec_index4,
+                self.cue_par = np.hstack([self.ionspec_index1, self.ionspec_index2, self.ionspec_index3, self.ionspec_index4,
                                         self.ionspec_logLratio1, self.ionspec_logLratio2, self.ionspec_logLratio3,
                                         self.gas_logq, 10**self.gas_logn,
                                         self.gas_logz, self.gas_logno, self.gas_logco])
+        else:
+            self.cue_par = np.array(theta)
+            self.gas_logq = logQ(self.cue_par[:,-5], lognH=self.cue_par[:,-4])
+            self.cue_par[:,-4] = 10**self.cue_par[:,-4]
+            self.cue_par[:,-5] = self.gas_logq
+            self.gas_logq = np.reshape(self.gas_logq, (len(self.cue_par), 1))
+        self.n_sample = len(self.cue_par)
 
     def predict_cont(self, wave, **kwargs):
         self.update(**kwargs)
         wavind_sorted = np.argsort(self.cont_wavelength)
-        fit_spectra = list()
         if self.cont_n_segments == 1:
-            fit_spectra = self.cont_pca_basis.PCA.inverse_transform(self.cont_nn.log_spectrum_(self.theta)) * self.cont_nn.log_spectrum_scale_ + self.cont_nn.log_spectrum_shift_
+            fit_spectra = self.cont_pca_basis.PCA.inverse_transform(self.cont_nn.log_spectrum_(self.cue_par)) * self.cont_nn.log_spectrum_scale_ + self.cont_nn.log_spectrum_shift_
             if self.n_sample == 1:
                 fit_spectra = np.squeeze(fit_spectra)[wavind_sorted]
             else:
@@ -159,22 +165,31 @@ class Emulator():
         else:
             this_spec = list()
             for j in range(self.cont_n_segments):
-                this_spec.append(self.cont_pca_basis[j].PCA.inverse_transform(self.cont_nn[j].log_spectrum_(self.theta)) * self.cont_nn[j].log_spectrum_scale_ + self.cont_nn[j].log_spectrum_shift_)
-            fit_spectra.append(np.hstack(this_spec)[:,wavind_sorted])
-            self.cont_nn_spectra = np.squeeze(np.array(fit_spectra))
+                this_spec.append(self.cont_pca_basis[j].PCA.inverse_transform(self.cont_nn[j].log_spectrum_(self.cue_par)) * self.cont_nn[j].log_spectrum_scale_ + self.cont_nn[j].log_spectrum_shift_)
+            fit_spectra = np.array(np.hstack(this_spec)[:,wavind_sorted])
+            self.cont_nn_spectra = np.squeeze(fit_spectra)
         #self.cont_nn_spectra = 10**self.cont_nn_spectra/3.839E33/10**self.gas_logq*10**self.log_qion # convert to the unit in FSPS
-	self.cont_nn_spectra = 10**(self.cont_nn_spectra - self.gas_logq + self.log_qion - np.log10(3.839E33))
+        self.cont_nn_spectra = np.squeeze(10**(self.cont_nn_spectra - self.gas_logq + self.log_qion - np.log10(3.839E33)))
         self.output_cont_wavelength = self.cont_wavelength[wavind_sorted]
         from scipy.interpolate import CubicSpline
-        neb_cont_cs = CubicSpline(self.cont_wavelength, self.cont_nn_spectra, extrapolate=True) # interpolate onto the fsps wavelengths
-        return neb_cont_cs(wave)
+        if self.n_sample == 1:
+            neb_cont_cs = CubicSpline(self.cont_wavelength, self.cont_nn_spectra, extrapolate=True) # interpolate onto the fsps wavelengths
+            interpolated_neb_cont = neb_cont_cs(wave)
+            interpolated_neb_cont[wave<=911.6] = 0. # cue doesn't predict nebular continuum blueward of Ly limit
+        else:
+            interpolated_neb_cont = list()
+            for spec in self.cont_nn_spectra:
+                neb_cont_cs = CubicSpline(self.cont_wavelength, spec, extrapolate=True) # interpolate onto the fsps wavelengths
+                interpolated_neb_cont.append(neb_cont_cs(wave))
+            interpolated_neb_cont = np.array(interpolated_neb_cont)
+            interpolated_neb_cont[:, wave<=911.6] = 0. # cue doesn't predict nebular continuum blueward of Ly limit
+        return interpolated_neb_cont
 
     def predict_lines(self, **kwargs):
         self.update(**kwargs)
         wavind_sorted = np.argsort(self.line_wavelength)
-        fit_spectra = list()
         if self.line_n_segments == 1:
-            fit_spectra = self.line_pca_basis.PCA.inverse_transform(self.line_nn.log_spectrum_(self.theta)) * self.line_nn.log_spectrum_scale_ + self.line_nn.log_spectrum_shift_
+            fit_spectra = self.line_pca_basis.PCA.inverse_transform(self.line_nn.log_spectrum_(self.cue_par)) * self.line_nn.log_spectrum_scale_ + self.line_nn.log_spectrum_shift_
             if self.n_sample == 1:
                 fit_spectra = np.squeeze(fit_spectra)[wavind_sorted]
             else:
@@ -183,10 +198,10 @@ class Emulator():
         else:
             this_spec = list()
             for j in range(self.line_n_segments):
-                this_spec.append(self.line_pca_basis[j].PCA.inverse_transform(self.line_nn[j].log_spectrum_(self.theta)) * self.line_nn[j].log_spectrum_scale_ + self.line_nn[j].log_spectrum_shift_)
-            fit_spectra.append(np.hstack(this_spec)[:,wavind_sorted][:,self.line_ind])
-            self.line_nn_spectra = np.squeeze(np.array(fit_spectra))
+                this_spec.append(self.line_pca_basis[j].PCA.inverse_transform(self.line_nn[j].log_spectrum_(self.cue_par)) * self.line_nn[j].log_spectrum_scale_ + self.line_nn[j].log_spectrum_shift_)
+            fit_spectra = np.array(np.hstack(this_spec)[:,wavind_sorted][:,self.line_ind])
+            self.line_nn_spectra = np.squeeze(fit_spectra)
         self.output_line_wavelength = self.line_wavelength[wavind_sorted]
         #self.line_nn_spectra = 10**self.line_nn_spectra/3.839E33/10**self.gas_logq*10**self.log_qion # convert to the unit in FSPS
-	self.line_nn_spectra = 10**(self.line_nn_spectra - self.gas_logq + self.log_qion - np.log10(3.839E33))
+        self.line_nn_spectra = 10**(self.line_nn_spectra - self.gas_logq + self.log_qion - np.log10(3.839E33))
         return self.line_nn_spectra
