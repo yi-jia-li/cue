@@ -38,7 +38,7 @@ class Emulator():
         nebular parameters, follow the range
         gas_logu: [-4, -1], gas_logn: [1, 4], gas_logz: [-2.2, 0.5],
         gas_logno: [-1, log10(5.4)], gas_logco: [-1, log10(5.4)]
-    :param log_qion: ionizing QH as the normalization factor of the emulator output, sum of Qs from four power laws if use_stellar_ionizing==True,
+    :param gas_logqion: ionizing QH as the normalization factor of the emulator output, sum of Qs from four power laws if use_stellar_ionizing==True,
     :param wave: wavelengths for the output nebular continuum, AA
     :output normalized nebular continuum in Lsun/Hz, and normalized line luminosities in Lsun
     """
@@ -49,7 +49,8 @@ class Emulator():
                  ionspec_index1=19.7, ionspec_index2=5.3, ionspec_index3=1.6, ionspec_index4=0.6,
                  ionspec_logLratio1=3.9, ionspec_logLratio2=0.01, ionspec_logLratio3=0.2,
                  gas_logu=-2.5, gas_logn=2, gas_logz=0., gas_logno=0., gas_logco=0.,
-                 log_qion=49.1,
+                 gas_logqion=49.1,
+                 line_ind = line_old, #match to cloudyfsps grid
                  #wav_selection = None,
                  #parameter_selection = None
                  **kwargs
@@ -66,8 +67,8 @@ class Emulator():
         self.line_n_segments = np.size(line_nn)
         self.cont_wavelength = cont_lam[122:]
         self.line_wavelength = nn_wavelength
-        self.line_ind = line_old
-        self.log_qion = log_qion
+        self.line_ind = line_ind
+        self.gas_logqion = gas_logqion
         if theta is None:
             self.n_sample = np.size(ionspec_index1)
             if (self.n_sample==1):
@@ -104,7 +105,7 @@ class Emulator():
         #               'ionspec_logLratio3': self.theta[:,6], 'gas_logq': self.theta[:,7],
         #               'gas_logn': self.theta[:,8], 'gas_logz': self.theta[:,9],
         #               'gas_logno': self.theta[:,10], 'gas_logco': self.theta[:,11],
-        #               'log_qion': self.log_qion}
+        #               'gas_logqion': self.gas_logqion}
         else:
             self.cue_par = np.array(theta)
             self.n_sample = len(self.cue_par)
@@ -168,8 +169,8 @@ class Emulator():
                 this_spec.append(self.cont_pca_basis[j].PCA.inverse_transform(self.cont_nn[j].log_spectrum_(self.cue_par)) * self.cont_nn[j].log_spectrum_scale_ + self.cont_nn[j].log_spectrum_shift_)
             fit_spectra = np.array(np.hstack(this_spec)[:,wavind_sorted])
             self.cont_nn_spectra = np.squeeze(fit_spectra)
-        #self.cont_nn_spectra = 10**self.cont_nn_spectra/3.839E33/10**self.gas_logq*10**self.log_qion # convert to the unit in FSPS
-        self.cont_nn_spectra = np.squeeze(10**(self.cont_nn_spectra - self.gas_logq + self.log_qion - np.log10(3.839E33)))
+        #self.cont_nn_spectra = 10**self.cont_nn_spectra/3.839E33/10**self.gas_logq*10**self.gas_logqion # convert to the unit in FSPS
+        self.cont_nn_spectra = np.squeeze(10**(self.cont_nn_spectra - self.gas_logq + self.gas_logqion - np.log10(3.839E33)))
         self.output_cont_wavelength = self.cont_wavelength[wavind_sorted]
         from scipy.interpolate import CubicSpline
         if self.n_sample == 1:
@@ -202,6 +203,6 @@ class Emulator():
             fit_spectra = np.array(np.hstack(this_spec)[:,wavind_sorted][:,self.line_ind])
             self.line_nn_spectra = np.squeeze(fit_spectra)
         self.output_line_wavelength = self.line_wavelength[wavind_sorted]
-        #self.line_nn_spectra = 10**self.line_nn_spectra/3.839E33/10**self.gas_logq*10**self.log_qion # convert to the unit in FSPS
-        self.line_nn_spectra = 10**(self.line_nn_spectra - self.gas_logq + self.log_qion - np.log10(3.839E33))
+        #self.line_nn_spectra = 10**self.line_nn_spectra/3.839E33/10**self.gas_logq*10**self.gas_logqion # convert to the unit in FSPS
+        self.line_nn_spectra = 10**(self.line_nn_spectra - self.gas_logq + self.gas_logqion - np.log10(3.839E33))
         return self.line_nn_spectra
