@@ -36,7 +36,7 @@ where = ["src"]
 [tool.coverage.run]
 parallel = true
 branch = true
-source = ["cue"]
+source = ["cue","cuejax"]
 #omit = [
 #    "docs/*",
 #    "tests/*",

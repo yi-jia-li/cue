@@ -28,6 +28,26 @@ An example of fitting emission lines with cue in [demo/cue_demo.ipynb](https://g
 
 A list of the emulated lines can be found in [data/lineList.dat](https://github.com/yi-jia-li/cue/blob/main/src/cue/data/lineList.dat)
 
+## Using `cuejax`
+
+To install:
+
+```
+cd <install_dir>
+git clone https://github.com/efburnham/cue.git
+cd cue
+pip install .
+```
+
+To use in python:
+
+```
+import cuejax as cue
+emul = cue.Emulator()
+lines = emul.predict_lines(theta)
+cont = emul.predict_cont(theta)
+```
+
 ## Citation
 
 If you use this code, please reference [this paper](https://ui.adsabs.harvard.edu/abs/2024arXiv240504598L/abstract):
