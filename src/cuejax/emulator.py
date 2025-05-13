@@ -124,10 +124,7 @@ class Emulator():
                     setattr(self, param, value)
                     idx = jnp.where(self.model.free_parameter_order==param)
                     theta = theta.at[:,idx].set(value) 
-        if theta.shape[1] == 11:
-            self.theta = jnp.hstack([theta,self.gas_loqion]) # theta vector does not contain logqion 
-        if theta.shape[2] == 12:
-            self.theta = theta
+        self.theta = theta
                 
 
     def predict_lines(self,**kwargs):
