@@ -44,8 +44,8 @@ To use in python:
 ```
 import cuejax as cue
 emul = cue.Emulator()
-lines = emul.predict_lines(theta)
-cont = emul.predict_cont(theta)
+lines = emul.predict_lines(theta=theta)
+cont = emul.predict_cont(wave,theta=theta)
 ```
 
 ## Citation

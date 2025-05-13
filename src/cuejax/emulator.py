@@ -41,11 +41,6 @@ def build_cue_model(ionspec_index1=19.7, ionspec_index2=5.3, ionspec_index3=1.6,
             'prior': priors.UniformPrior(min=-0.4, max=2.2)
                          }
 
-    params['gas_logqion'] = {'N': 1, 'isfree': True,
-            'init': gas_logqion, 
-            'prior': priors.UniformPrior(min=30, max=50)
-                         }
-
     params['gas_logu'] = {"N": 1, 'isfree': True,
             'init': gas_logu, 
             'prior': priors.UniformPrior(min=-4.0, max=-1)
@@ -67,6 +62,11 @@ def build_cue_model(ionspec_index1=19.7, ionspec_index2=5.3, ionspec_index3=1.6,
     params['gas_logco'] = {"N": 1, 'isfree': True,
             'init': gas_logco, 
             'prior': priors.UniformPrior(min=-1, max=np.log10(5.4))
+                         }
+
+    params['gas_logqion'] = {'N': 1, 'isfree': True,
+            'init': gas_logqion, 
+            'prior': priors.UniformPrior(min=30, max=50)
                          }
 
 
@@ -101,11 +101,11 @@ class Emulator():
         - gas_logno
         - gas_logco
 
-        - gas_logqion is fixed unless specified by a kwarg?
+        - gas_logqion is fixed unless specified by a kwarg
     """
     def __init__(self,**kwargs):
         self.model = build_cue_model(**kwargs)
-        self.theta = self.model.theta
+        self.theta = kwargs.get('theta', self.model.theta)
         self.cont_lam = self.model.spec_wavelengths
         self.line_wavelength = self.model.line_wavelengths
 
@@ -118,24 +118,26 @@ class Emulator():
 
     def update(self,theta=None,**kwargs):
         if theta is None:
-            theta = jnp.zeros((1,12))
+            theta = self.model.theta.copy()
             for param, value in kwargs.items():
                 if value is not None:
                     setattr(self, param, value)
                     idx = jnp.where(self.model.free_parameter_order==param)
                     theta = theta.at[:,idx].set(value) 
-        
-        self.theta = theta
+        if theta.shape[1] == 11:
+            self.theta = jnp.hstack([theta,self.gas_loqion]) # theta vector does not contain logqion 
+        if theta.shape[2] == 12:
+            self.theta = theta
                 
 
-    def predict_lines(self,theta,**kwargs):
+    def predict_lines(self,**kwargs):
         """hard coded to return the 128 FSPS cloudy grid lines. Lines in units of Lsun"""
-        self.update(theta,**kwargs)
+        self.update(**kwargs)
         return self.model.predict_lines(self.theta) # jit-compiled
         
-    def predict_cont(self,theta,wave,**kwargs):
+    def predict_cont(self,wave,**kwargs):
         """continuum in erg/s/cm^2/Hz"""
-        self.update(theta,**kwargs)
+        self.update(**kwargs)
         cont_maggies = self.model.predict_cont(self.theta,wave) # jit-compiled, interpolates
         cont = maggies_to_cgs(cont_maggies)
         return cont
