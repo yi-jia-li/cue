@@ -166,7 +166,10 @@ def calcQ(lamin0, specin0, mstar=1.0, helium=False, f_nu=True):
     Input spectrum must be in ergs/s/A if f_nu=False
     Q = int(Lnu/hnu dnu, nu_0, inf)
     '''
-    from scipy.integrate import simps
+    try:
+        from scipy.integrate import simps
+    except:
+        from scipy.integrate import simpson as simps    
     lamin = np.asarray(lamin0)
     specin = np.asarray(specin0)
     if helium:
