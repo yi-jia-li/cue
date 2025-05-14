@@ -72,7 +72,7 @@ def build_cue_model(ionspec_index1=19.7, ionspec_index2=5.3, ionspec_index3=1.6,
 
     # --- fixed parameters 
     params['add_stars'] = {"N": 1, "isfree": False,"init": False} # don't load in the stellar emulators
-    params['use_stellar_ionizing'] = {"N": 1, "isfree": False, "init": False}
+    params['use_stellar_ionizing'] = {"N": 1, "isfree": False, "init": False} # don't load in ionizing continuum emulators
     params["add_duste"] = {"N": 1, "isfree": False, "init": False}
     params['add_neb_emission'] = {'N': 1, 'isfree': False, 'init':True}
     params['nebemlineinspec'] = {'N': 1, 'isfree': False, 'init': False}
@@ -87,22 +87,6 @@ def build_cue_model(ionspec_index1=19.7, ionspec_index2=5.3, ionspec_index3=1.6,
 
 
 class Emulator():
-    """
-    theta must be inputted as a shape (N,12) in order of:
-        - ionspec_index1
-        - ionspec_index2
-        - ionspec_index3
-        - ionspec_logLratio1
-        - ionspec_logLratio2
-        - ionspec_logLratio3
-        - gas_logu --> used to calculate gas_logq
-        - gas_logn
-        - gas_logz
-        - gas_logno
-        - gas_logco
-
-        - gas_logqion is fixed unless specified by a kwarg
-    """
     def __init__(self,**kwargs):
         self.model = build_cue_model(**kwargs)
         self.theta = kwargs.get('theta', self.model.theta)
@@ -122,19 +106,50 @@ class Emulator():
             for param, value in kwargs.items():
                 if value is not None:
                     setattr(self, param, value)
-                    idx = jnp.where(self.model.free_parameter_order==param)
+                    idx = [i for i, name in enumerate(self.model.free_parameter_order) if name == param]
                     theta = theta.at[:,idx].set(value) 
         self.theta = theta
                 
 
     def predict_lines(self,**kwargs):
-        """hard coded to return the 128 FSPS cloudy grid lines. Lines in units of Lsun"""
+        """
+        hard coded to return the 128 FSPS cloudy grid lines. Lines in units of Lsun.
+        
+        theta must be inputted as a shape (N,12) in order of:
+            - ionspec_index1
+            - ionspec_index2
+            - ionspec_index3
+            - ionspec_logLratio1
+            - ionspec_logLratio2
+            - ionspec_logLratio3
+            - gas_logu
+            - gas_logn
+            - gas_logz
+            - gas_logno
+            - gas_logco
+            - gas_logqion
+        """
         self.update(**kwargs)
         return self.model.predict_lines(self.theta) # jit-compiled
         
-    def predict_cont(self,wave,**kwargs):
-        """continuum in erg/s/cm^2/Hz"""
+    def predict_cont(self,wave,unit='erg/s/Hz',**kwargs):
+        """
+        continuum in erg/s/Hz or Lsun/Hz.
+        
+        theta must be inputted as a shape (N,12) in order of:
+            - ionspec_index1
+            - ionspec_index2
+            - ionspec_index3
+            - ionspec_logLratio1
+            - ionspec_logLratio2
+            - ionspec_logLratio3
+            - gas_logu
+            - gas_logn
+            - gas_logz
+            - gas_logno
+            - gas_logco
+            - gas_logqion
+        """
         self.update(**kwargs)
-        cont_maggies = self.model.predict_cont(self.theta,wave) # jit-compiled, interpolates
-        cont = maggies_to_cgs(cont_maggies)
+        cont = self.model.predict_cont(self.theta,wave,unit=unit) # jit-compiled, interpolates
         return cont
