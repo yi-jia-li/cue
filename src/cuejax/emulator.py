@@ -8,7 +8,7 @@ import numpy as np
 def build_cue_model(ionspec_index1=19.7, ionspec_index2=5.3, ionspec_index3=1.6, ionspec_index4=0.6,
                  ionspec_logLratio1=3.9, ionspec_logLratio2=0.01, ionspec_logLratio3=0.2,
                  gas_logu=-2.5, gas_logn=2, gas_logz=0., gas_logno=0., gas_logco=0.,
-                 gas_logqion=49.1,**extras):
+                 gas_logqion=49.1,num_lines=138,**extras):
 
     params = {}
 
@@ -82,13 +82,18 @@ def build_cue_model(ionspec_index1=19.7, ionspec_index2=5.3, ionspec_index3=1.6,
     params['add_neb_lines'] = {'N': 1, 'isfree': False, 'init':True} # load in line emulators
     params['add_neb_continuum'] = {'N': 1, 'isfree': False, 'init': True} # load in the nebular continuum emulator
 
-    return NebModel(params) # if not predicting stellar continuum, you don't need to set a stellar emulator model path
+    return NebModel(params,num_lines=num_lines) # if not predicting stellar continuum, you don't need to set a stellar emulator model path
 
 
 
 class Emulator():
     def __init__(self,**kwargs):
-        self.model = build_cue_model(**kwargs)
+        """
+        Args:
+        - num_lines (int): Number of lines returned by cue. This can either be 128 (the Byler cloudy grid lines,
+
+        """
+        self.model = build_cue_model(**kwargs) # getting ALL of the cue lines, not just the Byler grid lines.
         self.theta = kwargs.get('theta', self.model.theta)
         self.cont_lam = self.model.spec_wavelengths
         self.line_wavelength = self.model.line_wavelengths
@@ -113,7 +118,7 @@ class Emulator():
 
     def predict_lines(self,**kwargs):
         """
-        hard coded to return the 128 FSPS cloudy grid lines. Lines in units of Lsun.
+        hard coded to return the 138 cue lines. Lines in units of Lsun.
         
         theta must be inputted as a shape (N,12) in order of:
             - ionspec_index1
