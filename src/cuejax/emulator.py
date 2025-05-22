@@ -307,7 +307,7 @@ def fast_line_prediction(x,emul):
     err = emul.predict_line_err()
     return lines, err
 
-@partial(jax.jit, static_argnums=(2))
+@partial(jax.jit, static_argnums=(2,3))
 def fast_cont_prediction(x,wave,emul,unit='erg/s/Hz'):
     """
     A JIT-compiled continuum prediction function. 
