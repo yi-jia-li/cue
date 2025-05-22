@@ -59,6 +59,7 @@ class Emulator():
 
         self.sort_by_wavelength = jnp.argsort(self.line_wavelengths_ann)
         self.line_wavelengths = self.line_wavelengths_ann[self.sort_by_wavelength][self.prospector_line_mask]
+        self.line_frac_error = self.line_frac_error[self.sort_by_wavelength][self.prospector_line_mask]
         self.line_names = self.line_names[self.sort_by_wavelength][self.prospector_line_mask]
         self.line_names = [' '.join(row) for row in self.line_names]
         self.num_lines_tot = self.line_wavelengths_ann.shape[0] # 138 lines outputted from cue
