@@ -230,7 +230,7 @@ def get_line(par):
                             log_NO_ratio=par['gas_logno'],
                             log_CO_ratio=par['gas_logco'],
                            ).nn_predict()
-    line_spec = neb_line[1]/3.839E33/10**logQ(par['gas_logu'], lognH=par['gas_logn'])*10**par['log_qion'] # convert to the unit in FSPS
+    line_spec = neb_line[1]/3.839E33/10**logQ(par['gas_logu'], lognH=par['gas_logn'])*10**par['gas_logqion'] # convert to the unit in FSPS
     return {"normalized nebular lineinuum": line_spec}
 
 

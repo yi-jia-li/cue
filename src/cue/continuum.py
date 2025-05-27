@@ -111,7 +111,7 @@ def get_cont(par):
                             log_NO_ratio=par['gas_logno'],
                             log_CO_ratio=par['gas_logco'],
                            ).nn_predict()
-    cont_spec = neb_cont[1]/3.839E33/10**logQ(par['gas_logu'], lognH=par['gas_logn'])*10**par['log_qion'] # convert to the unit in FSPS
+    cont_spec = neb_cont[1]/3.839E33/10**logQ(par['gas_logu'], lognH=par['gas_logn'])*10**par['gas_logqion'] # convert to the unit in FSPS
     from scipy.interpolate import CubicSpline
     neb_cont_cs = CubicSpline(neb_cont[0], cont_spec, extrapolate=True) # interpolate onto the fsps wavelengths
     return {"normalized nebular continuum": cont_spec, "interpolator": neb_cont_cs}
