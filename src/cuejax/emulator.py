@@ -6,8 +6,8 @@ import importlib
 import numpy as np
 import pickle
 
-from efsps.sources import SpeculatorANN, PCABasis
-from efsps.sources.constants import c_cms, c_AAs, c_kms, maggie_cgs, Lsun_cgs, lyman_limit
+from .sources import SpeculatorANN, PCABasis
+from .constants import c_cms, c_AAs, c_kms, Lsun_cgs, lyman_limit
 
 
 class Emulator():
@@ -64,9 +64,6 @@ class Emulator():
         self.line_names = [' '.join(row) for row in self.line_names]
         self.num_lines_tot = self.line_wavelengths_ann.shape[0] # 138 lines outputted from cue
         self.num_lines = self.line_wavelengths.shape[0] # 128 lines that are in prospector (if num_liunes = 128)
-
-        # self.wave_indices = jnp.searchsorted(self.spec_wavelengths, self.line_wavelengths)
-        # self.wave_res_min = self.spec_wavelengths[self.wave_indices]-self.spec_wavelengths[self.wave_indices-1]
 
         self.line_frac_error = self.line_frac_error[self.sort_by_wavelength][self.prospector_line_mask]
 
