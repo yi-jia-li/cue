@@ -34,7 +34,7 @@ class Emulator():
                       'line_names','prospector_line_mask','line_wavelengths_ann']
         
         for attribute_name,file_name in zip(attributes,files):
-            with importlib.resources.files('efsps.emulators.data.cue').joinpath(file_name).open('rb') as file:
+            with importlib.resources.files('cuejax.data').joinpath(file_name).open('rb') as file:
                 if 'pkl' in file_name:
                     data = pickle.load(file)
                 elif 'names' in file_name:
@@ -63,7 +63,7 @@ class Emulator():
         self.line_names = self.line_names[self.sort_by_wavelength][self.prospector_line_mask]
         self.line_names = [' '.join(row) for row in self.line_names]
         self.num_lines_tot = self.line_wavelengths_ann.shape[0] # 138 lines outputted from cue
-        self.num_lines = self.line_wavelengths.shape[0] # 128 lines that are in prospector (if num_liunes = 128)
+        self.num_lines = self.line_wavelengths.shape[0] # 128 lines that are in Byler grids (if num_lines = 128)
 
         self.line_frac_error = self.line_frac_error[self.sort_by_wavelength][self.prospector_line_mask]
 
