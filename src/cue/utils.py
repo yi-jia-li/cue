@@ -7,6 +7,7 @@ try:
 except(ImportError):
     pass
 
+from scipy.optimize import minimize
 
 cont_lam = np.genfromtxt(resource_filename("cue", "data/FSPSlam.dat"))
 cont_nu = c/cont_lam
@@ -173,7 +174,7 @@ def calcQ(lamin0, specin0, mstar=1.0, helium=False, f_nu=True):
     lamin = np.asarray(lamin0)
     specin = np.asarray(specin0)
     if helium:
-        lam_0 = 304.0
+        lam_0 = HeI_edge
     else:
         lam_0 = 911.6
     if f_nu:
@@ -199,7 +200,10 @@ def calcQs(lamin0, specin0, edges=[1, HeII_edge, OII_edge, HeI_edge, 911.6]):
     Input spectrum must be in ergs/s/Hz!!
     Q = int(Lnu/hnu dnu, nu_min, nu_max)
     """
-    from scipy.integrate import simps
+    try:
+        from scipy.integrate import simps
+    except:
+        from scipy.integrate import simpson as simps    
     lamin = np.asarray(lamin0)
     specin = np.asarray(specin0)
     c = 2.9979e18 #ang/s
@@ -261,7 +265,7 @@ def spec_normalized(wav, spec):
 ### fit functions
 logh = np.log10(h)
 ln10 = np.log(10)
-from scipy.optimize import minimize
+
 def customize_loss_funtion_loglinear_analytical(params, λmin, λmax, y_pred, y_true, log_Q_true, Ndata, sample_weights=None):
     """Loss function for fitting the powerlaws.
     loss = 0.5 \sum (y_pred-y_true)^2 + 0.5 N (\log10 Q_true - \log10 Q_pred)^2
@@ -336,7 +340,7 @@ def fit_4loglinear_ionparam(wav, spec, λ_bin=[HeII_edge, OII_edge, HeI_edge, 91
             coeff[i,1] = coeff[i,1]-np.log10(norm)
 
     logLratios = np.diff(np.squeeze(Ltotal(param=coeff.reshape(1,4,2))))
-    # we want to normalize cue outputs with QH from the given spec later; for converting Ls to powerlaw parameters, we need to use total QH based on the 1-911.6A powerlaw fits
+    # total QH (log_qion) will be used in normalizing cue outputs and to convert Ls to powerlaw parameters
     logQ = np.log10(calcQ(wav, spec*3.839E33)) #np.log10(np.sum(10**Qtotal(param=coeff)))
     return {'ionspec_index1': np.clip(coeff[0,0], 1, 42), 'ionspec_index2': np.clip(coeff[1,0], -0.3, 30), 'ionspec_index3': np.clip(coeff[2,0], -1, 14), 'ionspec_index4': np.clip(coeff[3,0], -1.7, 8),
             'ionspec_logLratio1': np.clip(logLratios[0], -1, 10.1), 'ionspec_logLratio2': np.clip(logLratios[1], -0.5, 1.9), 'ionspec_logLratio3': np.clip(logLratios[2], -0.4, 2.2),
