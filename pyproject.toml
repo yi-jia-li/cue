@@ -2,7 +2,7 @@
 name = "astro-cue"
 description = "Nebular Emission Modeling"
 authors = [
-    { name="Yijia Li", email="yijia.li@psu.edu" },
+    { name="Emilie Burnham, Yijia Li", email="yijia.li@psu.edu" },
 ]
 readme = "README.md"
 requires-python = ">=3.7"
@@ -16,7 +16,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Astronomy"
 ]
 dynamic = ["version"]
-dependencies = ["numpy", "scikit-learn", "scipy", "tensorflow", "dill", "tqdm"] #"pickle"
+dependencies = ["numpy", "scikit-learn", "scipy", "dill", "tqdm", "jax"] #"pickle"
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-xdist"]
@@ -36,7 +36,7 @@ where = ["src"]
 [tool.coverage.run]
 parallel = true
 branch = true
-source = ["cue","cuejax"]
+source = ["cuejax"]
 #omit = [
 #    "docs/*",
 #    "tests/*",

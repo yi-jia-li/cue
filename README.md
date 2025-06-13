@@ -52,20 +52,22 @@ cont = emul.predict_cont(wave,theta=theta)
 
 If you use this code, please reference [this paper](https://ui.adsabs.harvard.edu/abs/2024arXiv240504598L/abstract):
 ```
-@ARTICLE{2024arXiv240504598L,
+@ARTICLE{2025ApJ...986....9L,
        author = {{Li}, Yijia and {Leja}, Joel and {Johnson}, Benjamin D. and {Tacchella}, Sandro and {Davies}, Rebecca and {Belli}, Sirio and {Park}, Minjung and {Emami}, Razieh},
-        title = "{Cue: A Fast and Flexible Photoionization Emulator for Modeling Nebular Emission Powered By Almost Any Ionizing Source}",
-      journal = {arXiv e-prints},
-     keywords = {Astrophysics - Astrophysics of Galaxies},
-         year = 2024,
-        month = may,
-          eid = {arXiv:2405.04598},
-        pages = {arXiv:2405.04598},
-          doi = {10.48550/arXiv.2405.04598},
+        title = "{Cue: A Fast and Flexible Photoionization Emulator for Modeling Nebular Emission Powered by Almost Any Ionizing Source}",
+      journal = {\apj},
+     keywords = {Photoionization, H II regions, Interstellar medium, Stellar populations, Active galactic nuclei, Galaxy evolution, 2060, 694, 847, 1622, 16, 594, Astrophysics - Astrophysics of Galaxies},
+         year = 2025,
+        month = jun,
+       volume = {986},
+       number = {1},
+          eid = {9},
+        pages = {9},
+          doi = {10.3847/1538-4357/adcab4},
 archivePrefix = {arXiv},
        eprint = {2405.04598},
  primaryClass = {astro-ph.GA},
-       adsurl = {https://ui.adsabs.harvard.edu/abs/2024arXiv240504598L},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2025ApJ...986....9L},
       adsnote = {Provided by the SAO/NASA Astrophysics Data System}
 }
 ```
