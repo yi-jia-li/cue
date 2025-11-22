@@ -1,6 +1,5 @@
 ### temperal line prediction function
 import numpy as np
-#import glob
 import tensorflow as tf
 import tqdm
 import dill as pickle
@@ -13,16 +12,16 @@ from .utils import cont_lam, logQ
 
 ### read the fit PCAs and NN
 try:
-    from pkg_resources import resource_filename, resource_listdir
+    from importlib.resources import files
 except(ImportError):
     pass
 #import runpy
 #runpy._run_module_as_main("cont_pca.SpectrumPCA")
 #runpy.run_path(resource_filename("cue","cont_pca.py"), {}, "__main__")
-with open(resource_filename("cue", "data/pca_cont_new.pkl"), 'rb') as f:
+with open(files("cue").joinpath("data/pca_cont_new.pkl"), 'rb') as f:
     cont_PCABasis = pickle.load(f)
 cont_speculator = Speculator(restore = True, 
-                             restore_filename = resource_filename("cue", "data/speculator_cont_new"))
+                             restore_filename = str(files("cue").joinpath("data/speculator_cont_new")))
 
 #par = pd.DataFrame(data={'num':par[:,0], 'index1':par[:,2], 'index2':par[:,3], 'index3':par[:,4], 'index4':par[:,5], 
 #                         'delta_logL1':par[:,6], 'delta_logL2':par[:,7], 'delta_logL3':par[:,8],

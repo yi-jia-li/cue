@@ -1,30 +1,29 @@
 ## temperal line prediction function
 import numpy as np
-#import glob
 import tensorflow as tf
 import tqdm
-#import pickle
 import dill as pickle
 from .line_pca import SpectrumPCA
 from .nn import Speculator
 from .utils import (nn_wavelength, nn_name, line_old, logQ)
 #import __main__
 #__main__.SpectrumPCA = SpectrumPCA
-
-    
-### read the fit PCAs and NN
+ 
 try:
-    from pkg_resources import resource_filename, resource_listdir
+    from importlib.resources import files
 except(ImportError):
     pass
-### load nn grouped by both elements and ionization potentials
-for this_name in nn_name: 
-    with open(resource_filename("cue", "data/pca_line_new_"+this_name+".pkl"), 'rb') as f:
-        globals()["PCABasis_"+this_name] = pickle.load(f)
-    globals()["speculator_"+this_name] = Speculator(restore=True, restore_filename=resource_filename("cue", "data/speculator_line_new_"+this_name))
 
+### read the fit PCAs and NN, nn grouped by both elements and ionization potentials
+for this_name in nn_name: 
+    with open(files("cue").joinpath("data/pca_line_new_"+this_name+".pkl"), 'rb') as f:
+        globals()["PCABasis_"+this_name] = pickle.load(f)
+        globals()["speculator_"+this_name] = Speculator(restore = True, 
+                                                        restore_filename = str(files("cue").joinpath(\
+                                                                                                     "data/speculator_line_new_"+this_name))
+                                                       )
 line_PCABasis = [globals()["PCABasis_"+this_name] for this_name in nn_name]
-line_speculator = [globals()["speculator_"+this_name] for this_name in nn_name]                                                    
+line_speculator = [globals()["speculator_"+this_name] for this_name in nn_name]
                                                     
 #with open(resource_filename("cue", "data/pca_line_2m_ele_H.pkl"), 'rb') as f:
 #    PCABasis_H = pickle.load(f)

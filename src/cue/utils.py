@@ -3,13 +3,13 @@ import numpy as np
 import dill as pickle
 from .constants import Lsun,c,h,HeI_edge,HeII_edge,OII_edge
 try:
-    from pkg_resources import resource_filename, resource_listdir
+    from importlib.resources import files
 except(ImportError):
     pass
 
 from scipy.optimize import minimize
 
-cont_lam = np.genfromtxt(resource_filename("cue", "data/FSPSlam.dat"))
+cont_lam = np.genfromtxt(files("cue").joinpath("data/FSPSlam.dat"))
 cont_nu = c/cont_lam
 
 #def get_linewavelength(lines):
@@ -24,8 +24,8 @@ cont_nu = c/cont_lam
 #line_name = unsorted_line_name[np.argsort(unsorted_line_lam)]
 #line_lam = np.sort(unsorted_line_lam)
 
-new_unsorted_line_name = np.load(resource_filename("cue", "data/lineList_replaceblnd_name.npy"))
-new_unsorted_line_lam = np.load(resource_filename("cue", "data/lineList_wav.npy"))
+new_unsorted_line_name = np.load(files("cue").joinpath("data/lineList_replaceblnd_name.npy"))
+new_unsorted_line_lam = np.load(files("cue").joinpath("data/lineList_wav.npy"))
 new_sorted_line_name = new_unsorted_line_name[np.argsort(new_unsorted_line_lam)]
 new_sorted_line_lam = np.sort(new_unsorted_line_lam)
 new_ele_arr = np.array([i[:4].rstrip() for i in new_sorted_line_name])
@@ -42,24 +42,20 @@ nn_ion = np.array([['H  1'], ['He 1'], ['He 2'], ['C  1'], ['C  2', 'C  3'], ['C
                                ['Mg 2', 'Fe 2', 'Si 2', 'Al 2', 'P  2', 'S  2', 'Cl 2', 'Ar 2'],
                                ['Al 3', 'Si 3', 'S  3', 'Cl 3', 'Ar 3', 'Ne 2'],
                                ['S  4'], ['Ar 4'], ['Ne 3'], ['Ne 4']], dtype=object)
-nn_wav_selection = list()
-for this_line_ion in nn_ion:
-    if np.size(this_line_ion) == 1:
-        #wav_ind = np.array(new_ele_arr == this_line_ion)
-        wav_selection, = np.where(new_ele_arr == this_line_ion)
-    else:
-        wav_selection = list()
-        for i in this_line_ion:
-            wav_selection.append(np.where(new_ele_arr == i)[0])
-        wav_selection = np.sort(np.concatenate(wav_selection))
-    nn_wav_selection.append(wav_selection)
+
+nn_wav_selection = [
+    np.where(
+        np.in1d(new_ele_arr, np.atleast_1d(ion_set).flatten())
+    )[0]
+    for ion_set in nn_ion
+]
 nn_wav_selection = np.array(nn_wav_selection, dtype=object)
 nn_wavelength = new_sorted_line_lam[np.concatenate(nn_wav_selection)]
 
 line_name = new_sorted_line_name[line_old]
 line_lam = new_sorted_line_lam[line_old]
 
-nn_stats = pickle.load(open(resource_filename("cue", "data/nn_stats_v0.pkl"), "rb"))
+nn_stats = pickle.load(open(files("cue").joinpath("data/nn_stats_v0.pkl"), "rb"))
 sigma_line_for_fsps = 1./nn_stats['SN_quantile'][1][nn_stats['fsps_ind']][np.argsort(nn_stats['wav'][nn_stats['fsps_ind']])]
 
 
@@ -237,7 +233,7 @@ def get_loglinear_spectra(wav, param, ion_edges=[HeII_edge, OII_edge, HeI_edge])
     edges = np.hstack([ion_edges, np.max(wav)])
     ind_bin = np.array([max(np.where(wav<=λ)[0]) for λ in edges]) + 1 #np.array([np.argmin(np.abs(ssp_wav-λ)) for λ in λ_bin])+1
     ind_bin = np.insert(ind_bin, 0, 0)
-    spec = np.zeros_like(wav)
+    spec = np.zeros(len(wav))
     for i in range(len(ind_bin)-1):
         spec[ind_bin[i]:ind_bin[i+1]] = 10**linear(np.log10(wav[ind_bin[i]:ind_bin[i+1]]),
                                                    param[i,0], param[i,1])
